@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>שליפה מהכובע - זהות ושייכות</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@400;700&display=swap');
+
+        body {
+            font-family: 'Heebo', sans-serif;
+            background: radial-gradient(circle, #1a237e 0%, #000000 100%); /* רקע מסתורי */
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        h1 {
+            color: #b388ff;
+            text-shadow: 0 0 15px rgba(179, 136, 255, 0.6);
+            margin-bottom: 5px;
+            font-size: 2.5rem;
+            z-index: 10;
+        }
+
+        #status {
+            font-size: 1.4rem;
+            margin-bottom: 40px;
+            color: #ffd700;
+            font-weight: bold;
+            background: rgba(0,0,0,0.5);
+            padding: 10px 20px;
+            border-radius: 20px;
+            z-index: 10;
+        }
+
+        /* הקונטיינר של הכובע */
+        .hat-container {
+            position: relative;
+            cursor: pointer;
+            transition: transform 0.2s;
+            z-index: 5;
+        }
+
+        .hat-container:hover {
+            transform: scale(1.05);
+        }
+
+        /* אייקון הכובע */
+        .magic-hat {
+            font-size: 10rem;
+            filter: drop-shadow(0 0 30px rgba(124, 77, 255, 0.6));
+            user-select: none;
+            position: relative;
+        }
+
+        /* אפקט רעידה בזמן לחיצה */
+        .shake {
+            animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+        }
+
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-2px, 0, 0) rotate(-5deg); }
+            20%, 80% { transform: translate3d(4px, 0, 0) rotate(5deg); }
+            30%, 50%, 70% { transform: translate3d(-6px, 0, 0) rotate(-5deg); }
+            40%, 60% { transform: translate3d(6px, 0, 0) rotate(5deg); }
+        }
+
+        /* הודעה "לחץ עליי" */
+        .click-hint {
+            position: absolute;
+            bottom: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #aaa;
+            font-size: 1rem;
+            white-space: nowrap;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 0.5; }
+            50% { opacity: 1; }
+            100% { opacity: 0.5; }
+        }
+
+        /* מודל השאלות */
+        #question-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.95);
+            z-index: 100;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            animation: zoomIn 0.4s ease;
+        }
+
+        @keyframes zoomIn {
+            from { opacity: 0; transform: scale(0.8); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .modal-content {
+            width: 90%;
+            max-width: 800px;
+            text-align: center;
+        }
+
+        .modal-title {
+            font-size: 2rem;
+            color: #b388ff;
+            margin-bottom: 20px;
+        }
+
+        .cards-container {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .question-card {
+            background: linear-gradient(135deg, #311b92, #000000);
+            border: 2px solid #7c4dff;
+            border-radius: 15px;
+            padding: 30px;
+            width: 40%;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            min-height: 250px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .question-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
+            transform: translateX(-100%);
+            transition: 0.5s;
+        }
+
+        .question-card:hover::before {
+            transform: translateX(100%);
+        }
+
+        .question-card:hover {
+            transform: translateY(-10px) scale(1.02);
+            box-shadow: 0 0 25px rgba(124, 77, 255, 0.8);
+            border-color: #b388ff;
+        }
+
+        /* מסך סיום */
+        #finish-screen {
+            display: none;
+            text-align: center;
+            z-index: 20;
+        }
+
+        /* כוכבים/חלקיקים */
+        .particle {
+            position: absolute;
+            pointer-events: none;
+            animation: rise 1s ease-out forwards;
+            font-size: 1.5rem;
+        }
+
+        @keyframes rise {
+            0% { transform: translateY(0) scale(1); opacity: 1; }
+            100% { transform: translateY(-100px) scale(0); opacity: 0; }
+        }
+
+    </style>
+</head>
+<body>
+
+    <h1>מה מסתתר בכובע?</h1>
+    <div id="status">תור הילד/ה הראשון (סיבוב 1)</div>
+
+    <div class="hat-container" id="hatBtn" onclick="pullFromHat()">
+        <div class="magic-hat">🎩</div>
+        <div class="click-hint">לחצו עליי לשליפת שאלה</div>
+    </div>
+
+    <div id="question-modal">
+        <div class="modal-content">
+            <div class="modal-title">✨ הכובע שלף שתי שאלות! ✨<br><span style="font-size:1rem; color:#aaa">בחרו את זו שתרצו לענות עליה:</span></div>
+            <div class="cards-container" id="cards-area">
+                </div>
+        </div>
+    </div>
+
+    <div id="finish-screen">
+        <div style="font-size: 5rem;">🏆</div>
+        <h1>כל הכבוד!</h1>
+        <p style="font-size: 1.5rem;">סיימנו את כל השאלות.</p>
+        <p>תודה שהייתם חלק מהמסע!</p>
+    </div>
+
+<script>
+    // --- אותם הנתונים והלוגיקה ---
+    const allPairs = [
+        // אשכול 1 (סיבובים 1-3)
+        { id: 1, cluster: 1, q: ["האם יש משהו קטן שאתה יודע היום על עצמך, שלא תמיד שמת לב אליו קודם?", "איך אתה מרגיש היום לגבי זה שאתה אוטיסט?"] },
+        { id: 2, cluster: 1, q: ["האם גילית משהו שעוזר לך כשקשה?", "מה הדבר שהכי ממלא לך סוללה בזמן האחרון?"] },
+        { id: 3, cluster: 1, q: ["האם היה רעיון אחד שחשבת עליו גם מחוץ לקבוצה?", "יש משהו שעדיין מסקרן אותך לגבי עצמך או לגבי אוטיזם?"] },
+        
+        // אשכול 2 (סיבובים 4-6)
+        { id: 4, cluster: 2, q: ["האם היה מפגש או נושא שיותר עניין אותך?", "האם היה משהו בקבוצה שפחות התאים לך או שהיה מבאס?"] },
+        { id: 5, cluster: 2, q: ["איזה נושא הכי נשאר איתך מהקבוצה?", "האם הרגשת שיש כאן עוד ילדים שדומים לך באיזשהו דבר?"] },
+        { id: 6, cluster: 2, q: ["מה עוזר לך להרגיש בנוח בקבוצה כזאת?", "היה משהו שהיית משנה בקבוצה?"] },
+
+        // אשכול 3 (סיבובים 7-9)
+        { id: 7, cluster: 3, q: ["יש משהו שהיית רוצה שאנשים יבינו עליך, אבל לא תמיד מבינים?", "יש משהו שלא דיברנו עליו והיית רוצה שכן?"] },
+        { id: 8, cluster: 3, q: ["אם חבר אוטיסט היה שואל אותך מה עושים בקבוצה הזאת – מה היית מספר לו?", "האם היית ממליץ לחבר לבוא לקבוצה? למה / למה לא?"] },
+        { id: 9, cluster: 3, q: ["אם הייתה קבוצה נוספת – על מה היית רוצה שהיא תהיה?", "האם הקבוצה גרמה לך לחשוב על אוטיזם בצורה שונה, או שלא ממש?"] }
+    ];
+
+    let activePairs = [...allPairs];
+    let currentRound = 1;
+    let isAnimating = false;
+
+    // אלמנטים
+    const hatBtn = document.getElementById('hatBtn');
+    const statusDiv = document.getElementById('status');
+    const modal = document.getElementById('question-modal');
+    const cardsArea = document.getElementById('cards-area');
+    const finishScreen = document.getElementById('finish-screen');
+
+    function pullFromHat() {
+        if (isAnimating || activePairs.length === 0) return;
+        
+        isAnimating = true;
+        
+        // 1. אנימציה של רעידה
+        hatBtn.querySelector('.magic-hat').classList.add('shake');
+        
+        // 2. אפקט חלקיקים (קסם)
+        createParticles();
+
+        // 3. לוגיקה חכמה (סמויה)
+        setTimeout(() => {
+            // בחירת אשכול לפי סיבוב
+            let targetCluster = 1;
+            if (currentRound >= 4 && currentRound <= 6) targetCluster = 2;
+            if (currentRound >= 7) targetCluster = 3;
+
+            // סינון
+            const validCandidates = activePairs.filter(p => p.cluster === targetCluster);
+            const pool = validCandidates.length > 0 ? validCandidates : activePairs;
+            
+            // בחירה רנדומלית
+            const selectedPair = pool[Math.floor(Math.random() * pool.length)];
+
+            // פתיחת המודל
+            showModal(selectedPair);
+            
+            // איפוס אנימציה
+            hatBtn.querySelector('.magic-hat').classList.remove('shake');
+            isAnimating = false;
+        }, 1000); // מחכים שנייה לאנימציה
+    }
+
+    function showModal(pairObj) {
+        modal.style.display = 'flex';
+        cardsArea.innerHTML = '';
+
+        pairObj.q.forEach(text => {
+            const card = document.createElement('div');
+            card.className = 'question-card';
+            card.innerText = text;
+            card.onclick = () => closeTurn(pairObj);
+            cardsArea.appendChild(card);
+        });
+    }
+
+    function closeTurn(pairObj) {
+        // הסתרה
+        modal.style.display = 'none';
+
+        // מחיקת הזוג שנבחר מהמאגר
+        activePairs = activePairs.filter(p => p.id !== pairObj.id);
+
+        // קידום תור
+        currentRound++;
+        updateStatus();
+
+        // בדיקת סיום
+        if (activePairs.length === 0) {
+            hatBtn.style.display = 'none';
+            statusDiv.style.display = 'none';
+            finishScreen.style.display = 'block';
+            createConfetti();
+        }
+    }
+
+    function updateStatus() {
+        if (currentRound <= 9) {
+            const childNum = ((currentRound - 1) % 3) + 1;
+            statusDiv.innerText = `תור הילד/ה מספר ${childNum} (שאלה ${currentRound} מתוך 9)`;
+        }
+    }
+
+    // אפקט חלקיקים שיוצאים מהכובע
+    function createParticles() {
+        const icons = ['✨', '⭐', '❓', '🔮'];
+        const hatRect = hatBtn.getBoundingClientRect();
+        
+        for(let i=0; i<10; i++) {
+            const part = document.createElement('div');
+            part.className = 'particle';
+            part.innerText = icons[Math.floor(Math.random() * icons.length)];
+            
+            // מיקום רנדומלי סביב הכובע
+            const randomX = (Math.random() - 0.5) * 100;
+            
+            part.style.left = `calc(50% + ${randomX}px)`;
+            part.style.top = '0px'; 
+            
+            hatBtn.appendChild(part);
+
+            // ניקוי אלמנטים
+            setTimeout(() => part.remove(), 1000);
+        }
+    }
+    
+    // קונפטי לסיום
+    function createConfetti() {
+        setInterval(() => {
+            const conf = document.createElement('div');
+            conf.className = 'particle';
+            conf.innerText = '🎉';
+            conf.style.left = Math.random() * 100 + 'vw';
+            conf.style.top = '100vh';
+            conf.style.fontSize = (Math.random() * 2 + 1) + 'rem';
+            conf.style.animation = 'rise 3s linear forwards';
+            document.body.appendChild(conf);
+            setTimeout(() => conf.remove(), 3000);
+        }, 200);
+    }
+
+</script>
+
+</body>
+</html>
